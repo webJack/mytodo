@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <input type="button" value="播放" id="btn">
+    <video src="alert.mp3" id="music"></video>
+</body>
+<script>
+    var btn=document.querySelector("#btn");
+    var music=document.querySelector("#music");
+
+    btn.onclick=function(){
+        if(btn.value=="播放"){
+            music.play();
+            btn.value="停止"
+        }
+        else{
+            music.pause();
+            btn.value="停止"
+        }
+
+    }
+</script>
+</html>

@@ -30,6 +30,7 @@
 //
     function  init() {
         task_list=store.get("gg") || [];
+        clock_time(); //闹种
         createHtml(); //生成thml
     }
 
@@ -50,10 +51,28 @@
     function createHtml() {
         var $task_list=$(".task-list");
         $task_list.html(null); //清空
+        var complate_items=[];
         for(var i=0; i<task_list.length; i++){
-            var $item=bindHtml(task_list[i],i);
-            $task_list.append($item);
+            if (task_list[i].complated){ //选中了
+                complate_items[i]=task_list[i]
+            }
+            else{
+                var $item=bindHtml(task_list[i],i);
+                $task_list.append($item);
+                clock_time($item); //闹种提醒
+            }
+
         }
+        for(var j=0; j<complate_items.length; j++){
+            if(complate_items[j]){
+                $item=bindHtml(complate_items[j],j);
+                $item.addClass("complated");  //添加clss
+                $task_list.append($item);
+
+            }
+
+
+        };
         bindDelete();  //删除任务列表
         task_list_detail();  //详细
         add_complated(); //生成complated
@@ -71,7 +90,7 @@
             '<span class="detail r-main">详细</span>'+
             '</div>'+
             '</li>';
-        return str;
+        return $(str);
     }
 
     /*------------------------------删除-------------------------------------*/
@@ -86,10 +105,24 @@
     };
 //删除功能
     function remove_task_list(index){
-        var off = confirm("你确定要删除么");
-        if(!off) return;
-        task_list.splice(index,1);
-        refresh_task_list(); //更新
+        var off=false;
+        $(".Alert").show();
+        $(".primary.confirm").bind("click",function(){
+            off=true;
+            $(".Alert").hide();
+
+            //var off = confirm("你确定要删除么");
+
+            if(!off) return;
+            task_list.splice(index,1);
+            refresh_task_list(); //更新
+            $(".primary.confirm").unbind("click");
+        })
+        $(".cancel").click(function(){
+            off=false;
+            $(".Alert").hide();
+        })
+
     }
 //更新 本地存储
     function refresh_task_list(){
@@ -121,7 +154,7 @@
             '</div>'+
             '<div class="remind input-item">'+
             '<label for="b">提醒时间</label>'+
-            '<input id="b" class="datetime" type="date" value="'+data.datetime+'">'+
+            '<input id="b" class="datetime" type="text" value="'+(data.datetime || "")+'">'+
             '</div>'+
             '<div class="input-item">'+
             '<button class="ut-data">更新</button>'+
@@ -131,6 +164,10 @@
             '</div>';
 
         $(".container .task-list").after(str);
+
+        $.datetimepicker.setLocale('ch');
+        $('.datetime').datetimepicker();
+
         remove_detail(); //删除弹框
 
         up_task(index); //提交详细任务
@@ -146,11 +183,7 @@
 
 
     /*详细提交*/
-    /*//1.task_list[
-     {content:1,datail:"好好学习",time:"2017/08/09 11:23"},
-     {content:1},
-     {content:1}
-     ]*/
+
 
     //1.点击更新  获取index
     //2.新建一个对像  newobj={};
@@ -213,20 +246,73 @@
             var index = $(this).parent().data("index");
             if(task_list[index].complated){
                 up_data({complated:false},index);
-                $(".container .task-list").find("li").eq(index).removeClass();      //勾上加背景色
-                $(".container .task-list").find("li").eq(index).find("hr").hide();
+                /*$(".container .task-list").find("li").eq(index).removeClass();      //勾上加背景色
+                $(".container .task-list").find("li").eq(index).find("hr").hide();*/
             }
             else{
                 up_data({complated:true},index);
-                $(".container .task-list").find("li").eq(index).addClass("dali");   //勾上去背景色
-                $(".container .task-list").find("li").eq(index).find("hr").show();
-               // addLine(index);
+                /*$(".container .task-list").find("li").eq(index).addClass("dali");   //勾上去背景色
+                $(".container .task-list").find("li").eq(index).find("hr").show();*/
+
             }
+            createHtml();//更新complated
         });
     }
 
+    //闹钟提醒
+    //1.获取 start_time=  当前的时间
+    //2.过滤
+    //3.end_time= 结束时间   task_list[i].datetime
+    //得到毫秒
+    //到时间了， 播放音乐 提醒    显示黄色条
+    //关闭音乐
+    var timer=null;
+    //clock_time();
 
 
+    function clock_time(obj){
+        if (!$(obj)[0]) return;
 
+        clearInterval($(obj)[0].timer);
+        $(obj)[0].timer=setInterval(function(){
+            //1.获取 start_time=  当前的时间
+            var start_time=new Date().getTime();
+            var $item=task_list;
+            for(var i=0; i<$item.length; i++){
+                //2.过滤
+                if ($item[i].complated || !$item[i].datetime || $item.off) continue;
+
+                //3.end_time= 结束时间   task_list[i].datetime
+                var end_time=(new Date($item[i].datetime)).getTime();
+
+                if (end_time - start_time <=1){
+
+                    clearInterval($(obj)[0].timer);
+
+
+                    //播放音乐
+                    play_music();
+                    //弹出提醒框
+                    show_alert(task_list[i],i);
+
+                }
+            }
+        },1000);
+    }
+
+    function show_alert(item,i) {
+        $(".msg").show();
+        $(".msg-content").text(item.content);
+        $(".msg-btn").click(function(){
+            up_data({off:true},i);  //添加属性
+            $(".msg").hide();
+        })
+    }
+
+    //播放音乐
+    function play_music() {
+        var music01=document.getElementById("music");
+        music01.play();
+    }
 }());
 
